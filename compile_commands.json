@@ -1,0 +1,20 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-pthread",
+      "-pthread",
+      "-std=c++20",
+      "-m64",
+      "-fsized-deallocation",
+      "-I/home/jarno/miniconda3/envs/rootenv/include",
+      "-o",
+      "root_reader.exe",
+      "root_reader.cpp"
+    ],
+    "directory": "/home/jarno/data_testing",
+    "file": "/home/jarno/data_testing/root_reader.cpp",
+    "output": "/home/jarno/data_testing/root_reader.exe"
+  }
+]
