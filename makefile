@@ -1,9 +1,9 @@
 all:
-	make root_reader
+	make correlation_plotter
 
 clean:
 	-rm -f *.exe
 	-rm -f *.o
 
-root_reader: root_reader.cpp
-	g++ root_reader.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o root_reader.exe
+correlation_plotter: correlation_plotter.cpp
+	g++ correlation_plotter.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o correlation_plotter.exe

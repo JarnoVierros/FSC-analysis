@@ -142,6 +142,8 @@ int main() {
             gPad->SetLogz();
             adc_correlations[i*12+j]->Draw("COLZ");
 
+            adc_correlation_canvases[i*12+j]->SetLeftMargin(0.12);
+            adc_correlation_canvases[i*12+j]->SetRightMargin(0.12);
 
             TString filename = "figures/adc_correlations/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             adc_correlation_canvases[i*12+j]->Print(filename);
@@ -162,6 +164,8 @@ int main() {
             gPad->SetLogz();
             adc_correlations[i*12+j]->Draw("COLZ");
 
+            charge_correlation_canvases[i*12+j]->SetLeftMargin(0.12);
+            charge_correlation_canvases[i*12+j]->SetRightMargin(0.12);
 
             TString filename = "figures/charge_correlations/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             charge_correlation_canvases[i*12+j]->Print(filename);
