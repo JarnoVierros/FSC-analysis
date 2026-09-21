@@ -1,0 +1,16 @@
+----- Begin Fatal Exception 22-Sep-2026 01:13:26 CEST-----------------------
+An exception of category 'ProductNotFound' occurred while
+   [0] Processing  Event run: 400387 lumi: 35 event: 6124339 stream: 0
+   [1] Running path 'p'
+   [2] Calling method for module ZDCRecHitAnalyzerHC/'zdcanalyzer'
+Exception Message:
+Principal::getByToken: Found zero products matching all criteria
+Looking for type: edm::SortedCollection<ZDCRecHit,edm::StrictWeakOrdering<ZDCRecHit> >
+Looking for module label: zdcrecoRun3
+Looking for productInstanceName: 
+
+   Additional Info:
+      [a] If you wish to continue processing events after a ProductNotFound exception,
+add "TryToContinue = cms.untracked.vstring('ProductNotFound')" to the "options" PSet in the configuration.
+
+----- End Fatal Exception -------------------------------------------------
