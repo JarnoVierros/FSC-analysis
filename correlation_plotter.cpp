@@ -22,7 +22,7 @@ int main() {
 
     gStyle->SetOptStat(0);
 
-    const string detector_names[12] = {"+Up", "+Down", "+BottLeft", "+BottRight", "+TopLeft", "+TopRight", "-Up", "-Down", "-BottLeft", "-BottRight", "-TopLeft", "-TopRight"};
+    const string detector_names[12] = {"-Up", "-Down", "-BottLeft", "-BottRight", "-TopLeft", "-TopRight", "+Up", "+Down", "+BottLeft", "+BottRight", "+TopLeft", "+TopRight"};
 
     cout << "starting" << endl;
     TFile* file(TFile::Open("data/FSC_data_0.root"));
@@ -158,11 +158,11 @@ int main() {
             charge_correlation_canvases[i*12+j] = new TCanvas(corr_canvas_name, "", 1000, 1000);
 
             TString xtitle = detector_names[i] + " charge";
-            adc_correlations[i*12+j]->GetXaxis()->SetTitle(xtitle);
+            charge_correlations[i*12+j]->GetXaxis()->SetTitle(xtitle);
             TString ytitle = detector_names[j] + " charge";
-            adc_correlations[i*12+j]->GetYaxis()->SetTitle(ytitle);
+            charge_correlations[i*12+j]->GetYaxis()->SetTitle(ytitle);
             gPad->SetLogz();
-            adc_correlations[i*12+j]->Draw("COLZ");
+            charge_correlations[i*12+j]->Draw("COLZ");
 
             charge_correlation_canvases[i*12+j]->SetLeftMargin(0.12);
             charge_correlation_canvases[i*12+j]->SetRightMargin(0.12);
