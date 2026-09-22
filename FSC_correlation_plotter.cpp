@@ -87,8 +87,8 @@ int main() {
     vector<Float_t> x;
     vector<Float_t> y;
 
-    int i = 0;
-    const int max_i = -1; 
+    int count = 0;
+    const int max_count = -1; 
     while(reader.Next()) {
         for (int j=0; j<12; j++) {
             charge_calib_hist->Fill(adcs[2][j], charges[2][j]);
@@ -114,11 +114,12 @@ int main() {
             }
         }
 
-        i++;
-        if (i > max_i && max_i != -1) {
+        count++;
+        if (count > max_count && max_count != -1) {
             break;
         }
     }
+
     cout << "making figures" << endl;
 
     TCanvas* charge_calib_canvas = new TCanvas("charge_calib_canvas", "", 1000, 600);
