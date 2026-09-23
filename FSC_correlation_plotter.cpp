@@ -80,7 +80,7 @@ int main() {
             //cout << i << ":" << j << ":" << i*12+j << endl;;
             TString name = "charge_correlation_hist" + to_string(i) + "_" + to_string(j);
             TString title = detector_names[i] + " vs " + detector_names[j];
-            charge_correlations[i*12+j] = new TH2I(name, title, 300, 0, 350e3, 300, 0, 350e3);
+            charge_correlations[i*12+j] = new TH2I(name, title, 100, 0, 100e3, 100, 0, 100e3);
         }
     }
 
@@ -90,6 +90,12 @@ int main() {
     int count = 0;
     const int max_count = -1; 
     while(reader.Next()) {
+        /*
+        for (int i=0; i<6; i++) {
+            cout << charges[i][0] << " ";
+        }
+        cout << endl;
+        */
         for (int j=0; j<12; j++) {
             charge_calib_hist->Fill(adcs[2][j], charges[2][j]);
 

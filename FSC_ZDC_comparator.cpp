@@ -75,6 +75,8 @@ int main() {
         "ZDCp RPD 16",
     };
 
+    const bool rm_zeroes = true; //remove zeroes
+
     const string FSC_detector_names[12] = {"-Up", "-Down", "-BottLeft", "-BottRight", "-TopLeft", "-TopRight", "+Up", "+Down", "+BottLeft", "+BottRight", "+TopLeft", "+TopRight"};
 
     cout << "starting" << endl;
@@ -100,6 +102,18 @@ int main() {
         ZDC_adcs.emplace_back(ZDC_reader, branch.c_str());
     }
 
+    vector<TTreeReaderArray<Float_t>> FSC_charges;
+    for (int i=0; i<6; i++) {
+        string branch = "chargefCTs" + to_string(i);
+        FSC_charges.emplace_back(FSC_reader, branch.c_str());
+    }
+
+    vector<TTreeReaderArray<Float_t>> ZDC_charges;
+    for (int i=0; i<6; i++) {
+        string branch = "chargefCTs" + to_string(i);
+        ZDC_charges.emplace_back(ZDC_reader, branch.c_str());
+    }
+
     const string system_names[10] = {
         "FSCm st2",
         "FSCm st3",
@@ -113,7 +127,7 @@ int main() {
         "ZDCp RPD",
     };
 
-    const int limits[10] = {
+    const int adc_limits[10] = {
         260,
         260,
         260,
@@ -126,21 +140,53 @@ int main() {
         220,
     };
 
+    const double charge_limits[10] = {
+        350e3,
+        350e3,
+        350e3,
+        350e3,
+        300e3,
+        250e3,
+        150e3,
+        50e3,
+        100e3,
+        50e3,
+    };
+
     TH2I* adc_correlations[10*10];
     for (int i=0; i<10; i++) {
         for (int j=0; j<10; j++) {
             if (i==j) {continue;}
-            TString name = "FSC_ZDC_correlation_hist_" + to_string(i) + "_" + to_string(j);
+            TString name = "FSC_ZDC_adc_correlation_hist_" + to_string(i) + "_" + to_string(j);
             TString title = system_names[i] + " vs " + system_names[j];
-            adc_correlations[i*10+j] = new TH2I(name, title, limits[i]+1, -0.5, limits[i]+0.5, limits[j]+1, -0.5, limits[j]+0.5);
+            adc_correlations[i*10+j] = new TH2I(name, title, adc_limits[i]+1, -0.5, adc_limits[i]+0.5, adc_limits[j]+1, -0.5, adc_limits[j]+0.5);
         }
     }
 
-    TH1I* hists[10];
+    TH1I* adc_hists[10];
     for (int i=0; i<10; i++) {
-        TString name = "FSC_ZDC_correlation_hist_" + to_string(i) + "_" + to_string(i);
+        TString name = "FSC_ZDC_adc_correlation_hist_" + to_string(i) + "_" + to_string(i);
         TString title = system_names[i];
-        hists[i] = new TH1I(name, title, limits[i]+1, -0.5, limits[i]+0.5);
+        adc_hists[i] = new TH1I(name, title, adc_limits[i]+1, -0.5, adc_limits[i]+0.5);
+    }
+
+    const int charge_bins = 200;
+
+    TH2F* charge_correlations[10*10];
+    for (int i=0; i<10; i++) {
+        for (int j=0; j<10; j++) {
+            if (i==j) {continue;}
+            TString name = "FSC_ZDC_charge_correlation_hist_" + to_string(i) + "_" + to_string(j);
+            TString title = system_names[i] + " vs " + system_names[j];
+            charge_correlations[i*10+j] = new TH2F(name, title, charge_bins, 0, charge_limits[i], charge_bins, 0, charge_limits[j]);
+        }
+    }
+
+    TH1F* charge_hists[10];
+    for (int i=0; i<10; i++) {
+        TString name = "FSC_ZDC_charge_correlation_hist_" + to_string(i) + "_" + to_string(i);
+        TString title = system_names[i];
+        charge_hists[i] = new TH1F(name, title, charge_bins, 0, charge_limits[i]);
     }
 
     int count = 0;
@@ -152,65 +198,131 @@ int main() {
             throw exception();
         }
 
+        //############ADC
+
         int means[10];
         means[0] = (FSC_adcs[chosen_ts][0]+FSC_adcs[chosen_ts][1])/2;
-        if (FSC_adcs[chosen_ts][0]*FSC_adcs[chosen_ts][1]==0) {means[0]=0;}
+        if (FSC_adcs[chosen_ts][0]*FSC_adcs[chosen_ts][1]==0 && rm_zeroes) {means[0]=0;}
         means[1] = (FSC_adcs[chosen_ts][2]+FSC_adcs[chosen_ts][3]+FSC_adcs[chosen_ts][4]+FSC_adcs[chosen_ts][5])/4;
-        if (FSC_adcs[chosen_ts][2]*FSC_adcs[chosen_ts][3]*FSC_adcs[chosen_ts][4]*FSC_adcs[chosen_ts][5]==0) {means[1]=0;}
+        if (FSC_adcs[chosen_ts][2]*FSC_adcs[chosen_ts][3]*FSC_adcs[chosen_ts][4]*FSC_adcs[chosen_ts][5]==0 && rm_zeroes) {means[1]=0;}
         means[2] = (FSC_adcs[chosen_ts][6]+FSC_adcs[chosen_ts][7])/2;
-        if (FSC_adcs[chosen_ts][6]*FSC_adcs[chosen_ts][7]==0) {means[2]=0;}
+        if (FSC_adcs[chosen_ts][6]*FSC_adcs[chosen_ts][7]==0 && rm_zeroes) {means[2]=0;}
         means[3] = (FSC_adcs[chosen_ts][8]+FSC_adcs[chosen_ts][9]+FSC_adcs[chosen_ts][10]+FSC_adcs[chosen_ts][11])/4;
-        if (FSC_adcs[chosen_ts][8]*FSC_adcs[chosen_ts][9]*FSC_adcs[chosen_ts][10]*FSC_adcs[chosen_ts][11]==0) {means[3]=0;}
+        if (FSC_adcs[chosen_ts][8]*FSC_adcs[chosen_ts][9]*FSC_adcs[chosen_ts][10]*FSC_adcs[chosen_ts][11]==0 && rm_zeroes) {means[3]=0;}
         
         means[4] = 0;
         for (int i=0; i<5; i++) {means[4] += ZDC_adcs[chosen_ts][i];}
         means[4] = means[4]/5;
         float prod = 1;
         for (int i=0; i<5; i++) {prod *= ZDC_adcs[chosen_ts][i];}
-        if (prod == 0) {means[4]=0;}
+        if (prod == 0 && rm_zeroes) {means[4]=0;}
 
         means[5] = 0;
         for (int i=5; i<9; i++) {means[5] += ZDC_adcs[chosen_ts][i];}
         means[5] = means[5]/4;
         prod = 1;
         for (int i=5; i<9; i++) {prod *= ZDC_adcs[chosen_ts][i];}
-        if (prod == 0) {means[5]=0;}
+        if (prod == 0 && rm_zeroes) {means[5]=0;}
 
         means[6] = 0;
         for (int i=9; i<25; i++) {means[6] += ZDC_adcs[chosen_ts][i];}
         means[6] = means[6]/16;
         prod = 1;
         for (int i=9; i<25; i++) {prod *= ZDC_adcs[chosen_ts][i];}
-        if (prod == 0) {means[6]=0;}
+        if (prod == 0 && rm_zeroes) {means[6]=0;}
 
         means[7] = 0;
         for (int i=25; i<30; i++) {means[7] += ZDC_adcs[chosen_ts][i];}
         means[7] = means[7]/5;
         prod = 1;
         for (int i=25; i<30; i++) {prod *= ZDC_adcs[chosen_ts][i];}
-        if (prod == 0) {means[7]=0;}
+        if (prod == 0 && rm_zeroes) {means[7]=0;}
 
         means[8] = 0;
         for (int i=30; i<34; i++) {means[8] += ZDC_adcs[chosen_ts][i];}
         means[8] = means[8]/4;
         prod = 1;
         for (int i=30; i<34; i++) {prod *= ZDC_adcs[chosen_ts][i];}
-        if (prod == 0) {means[8]=0;}
+        if (prod == 0 && rm_zeroes) {means[8]=0;}
 
         means[9] = 0;
         for (int i=34; i<50; i++) {means[9] += ZDC_adcs[chosen_ts][i];}
         means[9] = means[9]/16;
         prod = 1;
         for (int i=34; i<50; i++) {prod *= ZDC_adcs[chosen_ts][i];}
-        if (prod == 0) {means[9]=0;}
+        if (prod == 0 && rm_zeroes) {means[9]=0;}
 
 
         for (int i=0; i<10; i++) {
             for (int j=0; j<10; j++) {
                 if (i==j) {
-                    hists[i]->Fill(means[i]);
+                    adc_hists[i]->Fill(means[i]);
                 } else {
                     adc_correlations[i*10+j]->Fill(means[i], means[j]);
+                }
+            }
+        }
+
+        //###############charge
+
+        means[0] = (FSC_charges[chosen_ts][0]+FSC_charges[chosen_ts][1])/2;
+        if (FSC_charges[chosen_ts][0]*FSC_charges[chosen_ts][1]==0 && rm_zeroes) {means[0]=0;}
+        means[1] = (FSC_charges[chosen_ts][2]+FSC_charges[chosen_ts][3]+FSC_charges[chosen_ts][4]+FSC_charges[chosen_ts][5])/4;
+        if (FSC_charges[chosen_ts][2]*FSC_charges[chosen_ts][3]*FSC_charges[chosen_ts][4]*FSC_charges[chosen_ts][5]==0 && rm_zeroes) {means[1]=0;}
+        means[2] = (FSC_charges[chosen_ts][6]+FSC_charges[chosen_ts][7])/2;
+        if (FSC_charges[chosen_ts][6]*FSC_charges[chosen_ts][7]==0 && rm_zeroes) {means[2]=0;}
+        means[3] = (FSC_charges[chosen_ts][8]+FSC_charges[chosen_ts][9]+FSC_charges[chosen_ts][10]+FSC_charges[chosen_ts][11])/4;
+        if (FSC_charges[chosen_ts][8]*FSC_charges[chosen_ts][9]*FSC_charges[chosen_ts][10]*FSC_charges[chosen_ts][11]==0 && rm_zeroes) {means[3]=0;}
+        
+        means[4] = 0;
+        for (int i=0; i<5; i++) {means[4] += ZDC_charges[chosen_ts][i];}
+        means[4] = means[4]/5;
+        prod = 1;
+        for (int i=0; i<5; i++) {prod *= ZDC_charges[chosen_ts][i];}
+        if (prod == 0 && rm_zeroes) {means[4]=0;}
+
+        means[5] = 0;
+        for (int i=5; i<9; i++) {means[5] += ZDC_charges[chosen_ts][i];}
+        means[5] = means[5]/4;
+        prod = 1;
+        for (int i=5; i<9; i++) {prod *= ZDC_charges[chosen_ts][i];}
+        if (prod == 0 && rm_zeroes) {means[5]=0;}
+
+        means[6] = 0;
+        for (int i=9; i<25; i++) {means[6] += ZDC_charges[chosen_ts][i];}
+        means[6] = means[6]/16;
+        prod = 1;
+        for (int i=9; i<25; i++) {prod *= ZDC_charges[chosen_ts][i];}
+        if (prod == 0 && rm_zeroes) {means[6]=0;}
+
+        means[7] = 0;
+        for (int i=25; i<30; i++) {means[7] += ZDC_charges[chosen_ts][i];}
+        means[7] = means[7]/5;
+        prod = 1;
+        for (int i=25; i<30; i++) {prod *= ZDC_charges[chosen_ts][i];}
+        if (prod == 0 && rm_zeroes) {means[7]=0;}
+
+        means[8] = 0;
+        for (int i=30; i<34; i++) {means[8] += ZDC_charges[chosen_ts][i];}
+        means[8] = means[8]/4;
+        prod = 1;
+        for (int i=30; i<34; i++) {prod *= ZDC_charges[chosen_ts][i];}
+        if (prod == 0 && rm_zeroes) {means[8]=0;}
+
+        means[9] = 0;
+        for (int i=34; i<50; i++) {means[9] += ZDC_charges[chosen_ts][i];}
+        means[9] = means[9]/16;
+        prod = 1;
+        for (int i=34; i<50; i++) {prod *= ZDC_charges[chosen_ts][i];}
+        if (prod == 0 && rm_zeroes) {means[9]=0;}
+
+
+        for (int i=0; i<10; i++) {
+            for (int j=0; j<10; j++) {
+                if (i==j) {
+                    charge_hists[i]->Fill(means[i]);
+                } else {
+                    charge_correlations[i*10+j]->Fill(means[i], means[j]);
                 }
             }
         }
@@ -233,10 +345,10 @@ int main() {
 
             if (i==j) {
                 TString xtitle = system_names[i] + " adc";
-                hists[i]->GetXaxis()->SetTitle(xtitle);
-                hists[i]->GetYaxis()->SetTitle("events");
+                adc_hists[i]->GetXaxis()->SetTitle(xtitle);
+                adc_hists[i]->GetYaxis()->SetTitle("events");
                 gPad->SetLogy();
-                hists[i]->Draw("");
+                adc_hists[i]->Draw("");
             } else {
                 TString xtitle = system_names[i] + " adc";
                 adc_correlations[i*10+j]->GetXaxis()->SetTitle(xtitle);
@@ -245,8 +357,48 @@ int main() {
                 gPad->SetLogz();
                 adc_correlations[i*10+j]->Draw("COLZ");
             }
-            TString filename = "figures/FSC_ZDC_correlations/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+            TString filename;
+            if (!rm_zeroes) {
+                filename = "figures/FSC_ZDC_correlations/adc_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+            } else {
+                filename = "figures/FSC_ZDC_correlations/adc/correlation_"+to_string(i)+"_"+to_string(j)+".png";    
+            }
             adc_correlation_canvases[i*10+j]->Print(filename);
+        }
+    }
+
+
+    TCanvas* charge_correlation_canvases[10*10];
+    for (int i=0; i<10; i++) {
+        for (int j=0; j<10; j++) {
+
+            TString corr_canvas_name = "charge_correlation_canvas_" + to_string(i) + "_" + to_string(j);
+            charge_correlation_canvases[i*10+j] = new TCanvas(corr_canvas_name, "", 1000, 1000);
+
+            charge_correlation_canvases[i*10+j]->SetLeftMargin(0.12);
+            charge_correlation_canvases[i*10+j]->SetRightMargin(0.12);
+
+            if (i==j) {
+                TString xtitle = system_names[i] + " charge";
+                charge_hists[i]->GetXaxis()->SetTitle(xtitle);
+                charge_hists[i]->GetYaxis()->SetTitle("events");
+                gPad->SetLogy();
+                charge_hists[i]->Draw("");
+            } else {
+                TString xtitle = system_names[i] + " charge";
+                charge_correlations[i*10+j]->GetXaxis()->SetTitle(xtitle);
+                TString ytitle = system_names[j] + " charge";
+                charge_correlations[i*10+j]->GetYaxis()->SetTitle(ytitle);
+                gPad->SetLogz();
+                charge_correlations[i*10+j]->Draw("COLZ");
+            }
+            TString filename;
+            if (!rm_zeroes){
+                filename = "figures/FSC_ZDC_correlations/charge_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+            } else {
+                filename = "figures/FSC_ZDC_correlations/charge/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+            }
+            charge_correlation_canvases[i*10+j]->Print(filename);
         }
     }
 
