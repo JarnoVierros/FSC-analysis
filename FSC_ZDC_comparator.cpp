@@ -83,12 +83,9 @@ int main() {
     TFile* FSC_file(TFile::Open("data/FSC_data_0.root"));
     TFile* ZDC_file(TFile::Open("data/ZDC_data_0.root"));
 
-    //TTree* tree(file->Get<TTree>("FSCAnalyzerHC/fscdigi"));
-    //tree->Print();
-    //return 0;
-
     TTreeReader FSC_reader("FSCAnalyzerHC/fscdigi", FSC_file);
     TTreeReader ZDC_reader("zdcanalyzer/zdcdigi", ZDC_file);
+    TTreeReader ZDC_rechit_reader("zdcanalyzer/zdcrechit", ZDC_file);
 
     vector<TTreeReaderArray<Int_t>> FSC_adcs;
     for (int i=0; i<6; i++) {
@@ -114,6 +111,8 @@ int main() {
         ZDC_charges.emplace_back(ZDC_reader, branch.c_str());
     }
 
+    TTreeReaderArray<Float_t> ZDC_energy(ZDC_rechit_reader, "energy");
+
     const string system_names[10] = {
         "FSCm st2",
         "FSCm st3",
@@ -125,6 +124,17 @@ int main() {
         "ZDCp ECAL",
         "ZDCp HCAL",
         "ZDCp RPD",
+    };
+
+    const string energy_system_names[8] = {
+        "FSCm st2",
+        "FSCm st3",
+        "FSCp st2",
+        "FSCp st3",
+        "ZDCm ECAL",
+        "ZDCm HCAL",
+        "ZDCp ECAL",
+        "ZDCp HCAL",
     };
 
     const int adc_limits[10] = {
@@ -151,6 +161,28 @@ int main() {
         50e3,
         100e3,
         50e3,
+    };
+
+    const double energy_adc_limits[10] = { //this must be 10 or the program crashes for mysterious reasons
+        260,
+        260,
+        260,
+        260,
+        5e3,
+        30e3,
+        5e3,
+        40e3,
+    };
+
+    const double energy_charge_limits[10] = { //same thing here
+        350e3,
+        350e3,
+        350e3,
+        350e3,
+        5e3,
+        30e3,
+        5e3,
+        40e3,
     };
 
     TH2I* adc_correlations[10*10];
@@ -189,11 +221,86 @@ int main() {
         charge_hists[i] = new TH1F(name, title, charge_bins, 0, charge_limits[i]);
     }
 
+    const int energy_bins = 200;
+
+    TH2F* energy_adc_correlations[8*8];
+    for (int i=0; i<8; i++) {
+        for (int j=0; j<8; j++) {
+            if (i==j) {continue;}
+            TString name = "FSC_ZDC_energy_adc_correlation_hist_" + to_string(i) + "_" + to_string(j);
+            TString title = energy_system_names[i] + " vs " + energy_system_names[j];
+            int xbins, ybins;
+            if (i<4) {
+                xbins = energy_adc_limits[i]+1;
+            } else {
+                xbins = energy_bins;
+            }
+            if (j<4) {
+                ybins = energy_adc_limits[j]+1;
+            } else {
+                ybins = energy_bins;
+            }
+            energy_adc_correlations[i*8+j] = new TH2F(name, title, xbins, 0, energy_adc_limits[i], ybins, 0, energy_adc_limits[j]);
+        }
+    }
+
+    TH1F* energy_adc_hists[8];
+    for (int i=0; i<8; i++) {
+        TString name = "FSC_ZDC_energy_adc_correlation_hist_" + to_string(i) + "_" + to_string(i);
+        TString title = energy_system_names[i];
+        int xbins, ybins;
+        if (i<4) {
+            xbins = energy_adc_limits[i]+1;
+        } else {
+            xbins = energy_bins;
+        }
+        energy_adc_hists[i] = new TH1F(name, title, xbins, 0, energy_adc_limits[i]);
+    }
+
+    TH2F* energy_charge_correlations[8*8];
+    for (int i=0; i<8; i++) {
+        for (int j=0; j<8; j++) {
+            if (i==j) {continue;}
+            TString name = "FSC_ZDC_energy_charge_correlation_hist_" + to_string(i) + "_" + to_string(j);
+            TString title = energy_system_names[i] + " vs " + energy_system_names[j];
+            int xbins, ybins;
+            if (i<4) {
+                xbins = energy_adc_limits[i]+1;
+            } else {
+                xbins = energy_bins;
+            }
+            if (j<4) {
+                ybins = energy_adc_limits[j]+1;
+            } else {
+                ybins = energy_bins;
+            }
+            energy_charge_correlations[i*8+j] = new TH2F(name, title, xbins, 0, energy_charge_limits[i], ybins, 0, energy_charge_limits[j]);
+        }
+    }
+
+    TH1F* energy_charge_hists[8];
+    for (int i=0; i<8; i++) {
+        TString name = "FSC_ZDC_energy_charge_correlation_hist_" + to_string(i) + "_" + to_string(i);
+        TString title = energy_system_names[i];
+        int xbins, ybins;
+        if (i<4) {
+            xbins = energy_adc_limits[i]+1;
+        } else {
+            xbins = energy_bins;
+        }
+        energy_charge_hists[i] = new TH1F(name, title, xbins, 0, energy_charge_limits[i]);
+    }
+
     int count = 0;
     const int max_count = -1;
     const int chosen_ts = 2;
     while(FSC_reader.Next()) {
+
         int res = ZDC_reader.Next();
+        if (res == 0) {
+            throw exception();
+        }
+        res = ZDC_rechit_reader.Next();
         if (res == 0) {
             throw exception();
         }
@@ -263,6 +370,44 @@ int main() {
             }
         }
 
+        means[4] = 0;
+        for (int i=0; i<5; i++) {means[4] += ZDC_energy[i];}
+        means[4] = means[4]/5;
+        prod = 1;
+        for (int i=0; i<5; i++) {prod *= ZDC_energy[i];}
+        if (prod == 0 && rm_zeroes) {means[4]=0;}
+
+        means[5] = 0;
+        for (int i=5; i<9; i++) {means[5] += ZDC_energy[i];}
+        means[5] = means[5]/4;
+        prod = 1;
+        for (int i=5; i<9; i++) {prod *= ZDC_energy[i];}
+        if (prod == 0 && rm_zeroes) {means[5]=0;}
+
+        means[6] = 0;
+        for (int i=9; i<14; i++) {means[6] += ZDC_energy[i];}
+        means[6] = means[6]/5;
+        prod = 1;
+        for (int i=9; i<14; i++) {prod *= ZDC_energy[i];}
+        if (prod == 0 && rm_zeroes) {means[6]=0;}
+
+        means[7] = 0;
+        for (int i=14; i<18; i++) {means[7] += ZDC_energy[i];}
+        means[7] = means[7]/4;
+        prod = 1;
+        for (int i=14; i<18; i++) {prod *= ZDC_energy[i];}
+        if (prod == 0 && rm_zeroes) {means[7]=0;}
+
+        for (int i=0; i<8; i++) {
+            for (int j=0; j<8; j++) {
+                if (i==j) {
+                    energy_adc_hists[i]->Fill(means[i]);
+                } else {
+                    energy_adc_correlations[i*8+j]->Fill(means[i], means[j]);
+                }
+            }
+        }
+
         //###############charge
 
         means[0] = (FSC_charges[chosen_ts][0]+FSC_charges[chosen_ts][1])/2;
@@ -323,6 +468,45 @@ int main() {
                     charge_hists[i]->Fill(means[i]);
                 } else {
                     charge_correlations[i*10+j]->Fill(means[i], means[j]);
+                }
+            }
+        }
+
+
+        means[4] = 0;
+        for (int i=0; i<5; i++) {means[4] += ZDC_energy[i];}
+        means[4] = means[4]/5;
+        prod = 1;
+        for (int i=0; i<5; i++) {prod *= ZDC_energy[i];}
+        if (prod == 0 && rm_zeroes) {means[4]=0;}
+
+        means[5] = 0;
+        for (int i=5; i<9; i++) {means[5] += ZDC_energy[i];}
+        means[5] = means[5]/4;
+        prod = 1;
+        for (int i=5; i<9; i++) {prod *= ZDC_energy[i];}
+        if (prod == 0 && rm_zeroes) {means[5]=0;}
+
+        means[6] = 0;
+        for (int i=9; i<14; i++) {means[6] += ZDC_energy[i];}
+        means[6] = means[6]/5;
+        prod = 1;
+        for (int i=9; i<14; i++) {prod *= ZDC_energy[i];}
+        if (prod == 0 && rm_zeroes) {means[6]=0;}
+
+        means[7] = 0;
+        for (int i=14; i<18; i++) {means[7] += ZDC_energy[i];}
+        means[7] = means[7]/4;
+        prod = 1;
+        for (int i=14; i<18; i++) {prod *= ZDC_energy[i];}
+        if (prod == 0 && rm_zeroes) {means[7]=0;}
+
+        for (int i=0; i<8; i++) {
+            for (int j=0; j<8; j++) {
+                if (i==j) {
+                    energy_charge_hists[i]->Fill(means[i]);
+                } else {
+                    energy_charge_correlations[i*8+j]->Fill(means[i], means[j]);
                 }
             }
         }
@@ -399,6 +583,102 @@ int main() {
                 filename = "figures/FSC_ZDC_correlations/charge/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             }
             charge_correlation_canvases[i*10+j]->Print(filename);
+        }
+    }
+
+    TCanvas* energy_adc_correlation_canvases[8*8];
+    for (int i=0; i<8; i++) {
+        for (int j=0; j<8; j++) {
+
+            TString corr_canvas_name = "energy_adc_correlation_canvas_" + to_string(i) + "_" + to_string(j);
+            energy_adc_correlation_canvases[i*8+j] = new TCanvas(corr_canvas_name, "", 1000, 1000);
+
+            energy_adc_correlation_canvases[i*8+j]->SetLeftMargin(0.12);
+            energy_adc_correlation_canvases[i*8+j]->SetRightMargin(0.12);
+
+            if (i==j) {
+                TString xtitle;
+                if (i<4) {
+                    xtitle = energy_system_names[i] + " adc";
+                } else {
+                    xtitle = energy_system_names[i] + " energy";
+                }
+                energy_adc_hists[i]->GetXaxis()->SetTitle(xtitle);
+                energy_adc_hists[i]->GetYaxis()->SetTitle("events");
+                gPad->SetLogy();
+                energy_adc_hists[i]->Draw("");
+            } else {
+                TString xtitle, ytitle;
+                if (i<4) {
+                    xtitle = energy_system_names[i] + " adc";
+                } else {
+                    xtitle = energy_system_names[i] + " energy";
+                }
+                if (j<4) {
+                    ytitle = energy_system_names[j] + " adc";
+                } else {
+                    ytitle = energy_system_names[j] + " energy";
+                }
+                energy_adc_correlations[i*8+j]->GetXaxis()->SetTitle(xtitle);
+                energy_adc_correlations[i*8+j]->GetYaxis()->SetTitle(ytitle);
+                gPad->SetLogz();
+                energy_adc_correlations[i*8+j]->Draw("COLZ");
+            }
+            TString filename;
+            if (!rm_zeroes) {
+                filename = "figures/FSC_ZDC_correlations/energy_adc_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+            } else {
+                filename = "figures/FSC_ZDC_correlations/energy_adc/correlation_"+to_string(i)+"_"+to_string(j)+".png";    
+            }
+            energy_adc_correlation_canvases[i*8+j]->Print(filename);
+        }
+    }
+
+    TCanvas* energy_charge_correlation_canvases[8];
+    for (int i=0; i<8; i++) {
+        for (int j=0; j<8; j++) {
+
+            TString corr_canvas_name = "energy_charge_correlation_canvas_" + to_string(i) + "_" + to_string(j);
+            energy_charge_correlation_canvases[i*8+j] = new TCanvas(corr_canvas_name, "", 1000, 1000);
+
+            energy_charge_correlation_canvases[i*8+j]->SetLeftMargin(0.12);
+            energy_charge_correlation_canvases[i*8+j]->SetRightMargin(0.12);
+
+            if (i==j) {
+                TString xtitle;
+                if (i<4) {
+                    xtitle = energy_system_names[i] + " charge";
+                } else {
+                    xtitle = energy_system_names[i] + " energy";
+                }
+                energy_charge_hists[i]->GetXaxis()->SetTitle(xtitle);
+                energy_charge_hists[i]->GetYaxis()->SetTitle("events");
+                gPad->SetLogy();
+                energy_charge_hists[i]->Draw("");
+            } else {
+                TString xtitle, ytitle;
+                if (i<4) {
+                    xtitle = energy_system_names[i] + " charge";
+                } else {
+                    xtitle = energy_system_names[i] + " energy";
+                }
+                if (j<4) {
+                    ytitle = energy_system_names[j] + " charge";
+                } else {
+                    ytitle = energy_system_names[j] + " energy";
+                }
+                energy_charge_correlations[i*8+j]->GetXaxis()->SetTitle(xtitle);
+                energy_charge_correlations[i*8+j]->GetYaxis()->SetTitle(ytitle);
+                gPad->SetLogz();
+                energy_charge_correlations[i*8+j]->Draw("COLZ");
+            }
+            TString filename;
+            if (!rm_zeroes){
+                filename = "figures/FSC_ZDC_correlations/energy_charge_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+            } else {
+                filename = "figures/FSC_ZDC_correlations/energy_charge/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+            }
+            energy_charge_correlation_canvases[i*8+j]->Print(filename);
         }
     }
 

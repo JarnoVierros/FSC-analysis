@@ -2,6 +2,8 @@ all:
 	make FSC_correlation_plotter
 	make ZDC_plotter
 	make FSC_ZDC_comparator
+	make ZDC_test
+	make FSC_selector
 
 clean:
 	-rm -f *.exe
@@ -15,3 +17,9 @@ ZDC_plotter: ZDC_plotter.cpp
 
 FSC_ZDC_comparator: FSC_ZDC_comparator.cpp
 	g++ FSC_ZDC_comparator.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o FSC_ZDC_comparator.exe
+
+ZDC_test: ZDC_test.cpp
+	g++ ZDC_test.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o ZDC_test.exe
+
+FSC_selector: FSC_selector.cpp
+	g++ FSC_selector.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o FSC_selector.exe
