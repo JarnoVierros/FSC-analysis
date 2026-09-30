@@ -139,7 +139,7 @@ int main() {
             }
         }
         for (int i=5; i<9; i++) {
-            if (ZDC_energy[i] > 5000) {
+            if (ZDC_energy[i] > 15000) {
                 m_hit = true;
             }
         }
