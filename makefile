@@ -4,6 +4,7 @@ all:
 	make FSC_ZDC_comparator
 	make ZDC_test
 	make FSC_selector
+	make track_test
 
 clean:
 	-rm -f *.exe
@@ -23,3 +24,6 @@ ZDC_test: ZDC_test.cpp
 
 FSC_selector: FSC_selector.cpp
 	g++ FSC_selector.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o FSC_selector.exe
+
+track_test: track_test.cpp
+	g++ track_test.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o track_test.exe
