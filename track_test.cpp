@@ -44,7 +44,7 @@ int main() {
     const int max_count = -1;
 
     while(reader.Next()) {
-        cout << count << ": " << *nEv << endl;
+        cout << count << ": " << *nEv << ", " << *nTrk << endl;
         for (int i=0; i<*nTrk; i++) {
             cout << trkEta[i] << " ";
         }

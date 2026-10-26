@@ -5,6 +5,7 @@ all:
 	make ZDC_test
 	make FSC_selector
 	make track_test
+	make rho_analysis.cpp
 
 clean:
 	-rm -f *.exe
@@ -27,3 +28,6 @@ FSC_selector: FSC_selector.cpp
 
 track_test: track_test.cpp
 	g++ track_test.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o track_test.exe
+
+rho_analysis: rho_analysis.cpp
+	g++ rho_analysis.cpp $$(root-config --glibs --cflags --libs) -L/home/jarno/libs -o rho_analysis.exe
