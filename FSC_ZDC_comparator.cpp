@@ -12,6 +12,8 @@
 #include "TCanvas.h"
 #include "TStyle.h"
 
+#include "rho_selector.h"
+
 using namespace std;
 
 //const int n = 23492616;
@@ -21,6 +23,16 @@ const bool do_prints = false;
 int main() {
 
     gStyle->SetOptStat(0);
+
+    string fig_directory = "figures/FSC_ZDC_correlations";
+
+    const bool rm_zeroes = true; //remove zeroes
+
+    const bool select_for_rho = true;
+
+    if (select_for_rho) {
+        fig_directory += "/rho_sample";
+    }
 
     const string ZDC_detector_names[50] = {
         "ZDCm EM 1",
@@ -75,17 +87,66 @@ int main() {
         "ZDCp RPD 16",
     };
 
-    const bool rm_zeroes = true; //remove zeroes
-
     const string FSC_detector_names[12] = {"-Up", "-Down", "-BottLeft", "-BottRight", "-TopLeft", "-TopRight", "+Up", "+Down", "+BottLeft", "+BottRight", "+TopLeft", "+TopRight"};
 
     cout << "starting" << endl;
-    TFile* FSC_file(TFile::Open("data/FSC_data_0.root"));
-    TFile* ZDC_file(TFile::Open("data/ZDC_data_0.root"));
+
+    TFile* FSC_file;
+    TFile* ZDC_file;
+    TFile* Tracker_file;
+    TFile* HF_file;
+
+    if (select_for_rho) {
+        FSC_file = TFile::Open("data/FSC_data_0_cut.root");
+        ZDC_file = TFile::Open("data/ZDC_data_0_cut.root");
+        Tracker_file = TFile::Open("data/Tracker_data_0_cut.root");
+        HF_file = TFile::Open("data/HF_data_0_cut.root");
+    } else {
+        FSC_file = TFile::Open("data/FSC_data_0.root");
+        ZDC_file = TFile::Open("data/ZDC_data_0.root");
+        Tracker_file = TFile::Open("data/Tracker_data_0.root");
+        HF_file = TFile::Open("data/HF_data_0.root");
+    }
 
     TTreeReader FSC_reader("FSCAnalyzerHC/fscdigi", FSC_file);
     TTreeReader ZDC_reader("zdcanalyzer/zdcdigi", ZDC_file);
     TTreeReader ZDC_rechit_reader("zdcanalyzer/zdcrechit", ZDC_file);
+    
+    TTreeReader Tracker_reader("trackAnalyzer/trackTree", Tracker_file);
+    TTreeReader HF_reader("rechitanalyzer/hf", HF_file);
+    
+    TTreeReaderValue<Int_t> nTrk(Tracker_reader, "nTrk");
+
+    TTreeReaderArray<float> trkEta(Tracker_reader, "trkEta");
+    TTreeReaderArray<float> trkPt(Tracker_reader, "trkPt");
+    TTreeReaderArray<float> trkPtError(Tracker_reader, "trkPtError");
+    TTreeReaderArray<float> trkPhi(Tracker_reader, "trkPhi");
+    TTreeReaderArray<char> trkCharge(Tracker_reader, "trkCharge");
+    TTreeReaderArray<bool> highPurity(Tracker_reader, "highPurity");
+
+    TTreeReaderArray<float> trkDxy(Tracker_reader, "trkDxyAssociatedVtx");
+    TTreeReaderArray<float> trkDxyErr(Tracker_reader, "trkDxyErrAssociatedVtx");
+    TTreeReaderArray<float> trkDz(Tracker_reader, "trkDzAssociatedVtx");
+    TTreeReaderArray<float> trkDzErr(Tracker_reader, "trkDzErrAssociatedVtx");
+
+    TTreeReaderArray<float> HF_e(HF_reader, "e");
+    TTreeReaderArray<float> HF_eta(HF_reader, "eta");
+
+    rho_readers readers(
+        &nTrk,
+        &trkEta,
+        &trkPt,
+        &trkPtError,
+        &trkPhi,
+        &trkCharge,
+        &highPurity,
+        &trkDxy,
+        &trkDxyErr,
+        &trkDz,
+        &trkDzErr,
+        &HF_e,
+        &HF_eta
+    );
 
     vector<TTreeReaderArray<Int_t>> FSC_adcs;
     for (int i=0; i<6; i++) {
@@ -110,6 +171,11 @@ int main() {
         string branch = "chargefCTs" + to_string(i);
         ZDC_charges.emplace_back(ZDC_reader, branch.c_str());
     }
+
+    TTreeReaderValue<Float_t> FSC2m_sum(FSC_reader, "sumMinus_FSC2only");
+    TTreeReaderValue<Float_t> FSC3m_sum(FSC_reader, "sumMinus_FSC3only");
+    TTreeReaderValue<Float_t> FSC2p_sum(FSC_reader, "sumPlus_FSC2only");
+    TTreeReaderValue<Float_t> FSC3p_sum(FSC_reader, "sumPlus_FSC3only");
 
     TTreeReaderArray<Float_t> ZDC_energy(ZDC_rechit_reader, "energy");
 
@@ -295,15 +361,38 @@ int main() {
     const int max_count = -1;
     const int chosen_ts = 2;
     while(FSC_reader.Next()) {
-
+        
         int res = ZDC_reader.Next();
         if (res == 0) {
+            cout << "ZDC read failed" << endl;
             throw exception();
         }
         res = ZDC_rechit_reader.Next();
         if (res == 0) {
+            cout << "ZDC rechit read failed" << endl;
             throw exception();
         }
+
+        if (select_for_rho) {
+            res = Tracker_reader.Next();
+            if (res == 0) {
+                cout << "Tracker read failed" << endl;
+                throw exception();
+            }
+            res = HF_reader.Next();
+            if (res == 0) {
+                cout << "HF read failed" << endl;
+                throw exception();
+            }
+        }
+
+
+        if (select_for_rho) {
+            track rho_track;
+            bool is_rho = select_rho(readers, rho_track, false);
+            if (!is_rho) {continue;}
+        }
+
 
         //############ADC
 
@@ -410,14 +499,10 @@ int main() {
 
         //###############charge
 
-        means[0] = (FSC_charges[chosen_ts][0]+FSC_charges[chosen_ts][1])/2;
-        if (FSC_charges[chosen_ts][0]*FSC_charges[chosen_ts][1]==0 && rm_zeroes) {means[0]=0;}
-        means[1] = (FSC_charges[chosen_ts][2]+FSC_charges[chosen_ts][3]+FSC_charges[chosen_ts][4]+FSC_charges[chosen_ts][5])/4;
-        if (FSC_charges[chosen_ts][2]*FSC_charges[chosen_ts][3]*FSC_charges[chosen_ts][4]*FSC_charges[chosen_ts][5]==0 && rm_zeroes) {means[1]=0;}
-        means[2] = (FSC_charges[chosen_ts][6]+FSC_charges[chosen_ts][7])/2;
-        if (FSC_charges[chosen_ts][6]*FSC_charges[chosen_ts][7]==0 && rm_zeroes) {means[2]=0;}
-        means[3] = (FSC_charges[chosen_ts][8]+FSC_charges[chosen_ts][9]+FSC_charges[chosen_ts][10]+FSC_charges[chosen_ts][11])/4;
-        if (FSC_charges[chosen_ts][8]*FSC_charges[chosen_ts][9]*FSC_charges[chosen_ts][10]*FSC_charges[chosen_ts][11]==0 && rm_zeroes) {means[3]=0;}
+        means[0] = (*FSC2m_sum)/2;
+        means[1] = (*FSC3m_sum)/4;
+        means[2] = (*FSC2p_sum)/2;
+        means[3] = (*FSC3p_sum)/4;
         
         means[4] = 0;
         for (int i=0; i<5; i++) {means[4] += ZDC_charges[chosen_ts][i];}
@@ -543,9 +628,9 @@ int main() {
             }
             TString filename;
             if (!rm_zeroes) {
-                filename = "figures/FSC_ZDC_correlations/adc_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+                filename = fig_directory + "/adc_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             } else {
-                filename = "figures/FSC_ZDC_correlations/adc/correlation_"+to_string(i)+"_"+to_string(j)+".png";    
+                filename = fig_directory + "/adc/correlation_"+to_string(i)+"_"+to_string(j)+".png";    
             }
             adc_correlation_canvases[i*10+j]->Print(filename);
         }
@@ -578,9 +663,9 @@ int main() {
             }
             TString filename;
             if (!rm_zeroes){
-                filename = "figures/FSC_ZDC_correlations/charge_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+                filename = fig_directory + "/charge_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             } else {
-                filename = "figures/FSC_ZDC_correlations/charge/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+                filename = fig_directory + "/charge/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             }
             charge_correlation_canvases[i*10+j]->Print(filename);
         }
@@ -626,9 +711,9 @@ int main() {
             }
             TString filename;
             if (!rm_zeroes) {
-                filename = "figures/FSC_ZDC_correlations/energy_adc_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+                filename = fig_directory + "/energy_adc_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             } else {
-                filename = "figures/FSC_ZDC_correlations/energy_adc/correlation_"+to_string(i)+"_"+to_string(j)+".png";    
+                filename = fig_directory + "/energy_adc/correlation_"+to_string(i)+"_"+to_string(j)+".png";    
             }
             energy_adc_correlation_canvases[i*8+j]->Print(filename);
         }
@@ -674,9 +759,9 @@ int main() {
             }
             TString filename;
             if (!rm_zeroes){
-                filename = "figures/FSC_ZDC_correlations/energy_charge_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+                filename = fig_directory + "/energy_charge_zeroes/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             } else {
-                filename = "figures/FSC_ZDC_correlations/energy_charge/correlation_"+to_string(i)+"_"+to_string(j)+".png";
+                filename = fig_directory + "/energy_charge/correlation_"+to_string(i)+"_"+to_string(j)+".png";
             }
             energy_charge_correlation_canvases[i*8+j]->Print(filename);
         }

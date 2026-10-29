@@ -1,1 +1,4 @@
-lxplus990.cern.ch
+lxplus990.cern.ch FSC
+lxplus957.cern.ch ZDC
+lxplus947.cern.ch Tracks
+lxplus992.cern.ch HF
