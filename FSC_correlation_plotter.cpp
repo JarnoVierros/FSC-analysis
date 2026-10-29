@@ -25,11 +25,11 @@ int main() {
     const string detector_names[12] = {"-Up", "-Down", "-BottLeft", "-BottRight", "-TopLeft", "-TopRight", "+Up", "+Down", "+BottLeft", "+BottRight", "+TopLeft", "+TopRight"};
 
     cout << "starting" << endl;
-    TFile* file(TFile::Open("data/FSC_data_0.root"));
+    TFile* file(TFile::Open("data/FSC_data_0_cut.root"));
 
-    //TTree* tree(file->Get<TTree>("FSCAnalyzerHC/fscdigi"));
-    //tree->Print();
-    //return 0;
+    TTree* tree(file->Get<TTree>("FSCAnalyzerHC/fscdigi"));
+    tree->Print();
+    return 0;
 
     TTreeReader reader("FSCAnalyzerHC/fscdigi", file);
     
