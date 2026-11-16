@@ -104,6 +104,6 @@ struct rho_readers {
 };
 
 
-bool select_rho(rho_readers readers, track &rho_track, bool print=false);
+bool select_rho(rho_readers readers, track &rho_track, bool print=false, bool use_HF=true);
 
 #endif

@@ -97,9 +97,9 @@ int main() {
     TFile* HF_file;
 
     if (select_for_rho) {
-        FSC_file = TFile::Open("data/FSC_data_0_cut.root");
-        ZDC_file = TFile::Open("data/ZDC_data_0_cut.root");
-        Tracker_file = TFile::Open("data/Tracker_data_0_cut.root");
+        FSC_file = TFile::Open("data/FSC_ZDC_data_1_399_cut.root");
+        ZDC_file = TFile::Open("data/FSC_ZDC_data_1_399_cut.root");
+        Tracker_file = TFile::Open("data/Tracker_data_1_399.root");
         HF_file = TFile::Open("data/HF_data_0_cut.root");
     } else {
         FSC_file = TFile::Open("data/FSC_data_0.root");
@@ -379,17 +379,19 @@ int main() {
                 cout << "Tracker read failed" << endl;
                 throw exception();
             }
+            /*
             res = HF_reader.Next();
             if (res == 0) {
                 cout << "HF read failed" << endl;
                 throw exception();
             }
+            */
         }
 
 
         if (select_for_rho) {
             track rho_track;
-            bool is_rho = select_rho(readers, rho_track, false);
+            bool is_rho = select_rho(readers, rho_track, false, false);
             if (!is_rho) {continue;}
         }
 

@@ -76,28 +76,31 @@ track reconstruct(track track1, track track2) {
     return reconstructed_track;
 }
 
-bool select_rho(rho_readers readers, track &rho_track, bool print) {
+bool select_rho(rho_readers readers, track &rho_track, bool print, bool use_HF) {
     float HFplus = 0;
     float HFminus = 0;
 
-    for (int i=0; i<readers.HF_e->GetSize(); i++) {
-        if (readers.HF_eta[0][i] > 0) {
-            HFplus += readers.HF_e[0][i];
+    if (use_HF) {
+        for (int i=0; i<readers.HF_e->GetSize(); i++) {
+            if (readers.HF_eta[0][i] > 0) {
+                HFplus += readers.HF_e[0][i];
+            }
+            if (readers.HF_eta[0][i] < 0) {
+                HFminus += readers.HF_e[0][i];
+            }
         }
-        if (readers.HF_eta[0][i] < 0) {
-            HFminus += readers.HF_e[0][i];
+        if (HFplus > 9.2) {
+            if (print) {cout << "HF+" << endl;}
+            return false;
+        }
+
+        if (HFminus > 8.6) {
+            if (print) {cout << "HF-" << endl;}
+            return false;
         }
     }
 
-    if (HFplus > 9.2) {
-        if (print) {cout << "HF+" << endl;}
-        return false;
-    }
 
-    if (HFminus > 8.6) {
-        if (print) {cout << "HF-" << endl;}
-        return false;
-    }
 
     if (*(*readers.nTrk) < 2) {
         if (print) {cout << "nTrk" << endl;}

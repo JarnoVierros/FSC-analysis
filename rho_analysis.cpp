@@ -21,6 +21,8 @@ int main() {
 
     cout << "starting" << endl;
 
+
+    /*
     TFile* FSC_file(TFile::Open("data/FSC_data_0_cut.root"));
     TFile* ZDC_file(TFile::Open("data/ZDC_data_0_cut.root"));
     TFile* Tracker_file(TFile::Open("data/Tracker_data_0_cut.root"));
@@ -29,6 +31,17 @@ int main() {
     TTreeReader FSC_reader("FSCAnalyzerHC/fscdigi", FSC_file);
     TTreeReader ZDC_reader("zdcanalyzer/zdcdigi", ZDC_file);
     TTreeReader ZDC_rechit_reader("zdcanalyzer/zdcrechit", ZDC_file);
+    TTreeReader Tracker_reader("trackAnalyzer/trackTree", Tracker_file);
+    TTreeReader HF_reader("rechitanalyzer/hf", HF_file);
+    */
+
+    TFile* FSC_ZDC_file(TFile::Open("data/FSC_ZDC_data_1_399_cut.root"));
+    TFile* Tracker_file(TFile::Open("data/Tracker_data_1_399.root"));
+    TFile* HF_file(TFile::Open("data/HF_data_0_cut.root"));
+
+    TTreeReader FSC_reader("FSCAnalyzerHC/fscdigi", FSC_ZDC_file);
+    TTreeReader ZDC_reader("zdcanalyzer/zdcdigi", FSC_ZDC_file);
+    TTreeReader ZDC_rechit_reader("zdcanalyzer/zdcrechit", FSC_ZDC_file);
     TTreeReader Tracker_reader("trackAnalyzer/trackTree", Tracker_file);
     TTreeReader HF_reader("rechitanalyzer/hf", HF_file);
 
@@ -80,13 +93,13 @@ int main() {
         if (res == 0) {
             throw exception();
         }
-        res = HF_reader.Next();
-        if (res == 0) {
-            throw exception();
-        }
+        //res = HF_reader.Next();
+        //if (res == 0) {
+        //    throw exception();
+        //}
 
         track rho_track;
-        bool is_rho = select_rho(readers, rho_track, false);
+        bool is_rho = select_rho(readers, rho_track, false, false);
 
         if (!is_rho) {continue;}
 
@@ -113,7 +126,7 @@ int main() {
     high_rho_mass->SetLineWidth(2);
     high_rho_mass->Draw("SAME");
 
-    rho_mass_canvas->Print("figures/rho/tho_mass.png");
+    rho_mass_canvas->Print("figures/rho/rho_mass.png");
 
     cout << "finished" << endl;
 
