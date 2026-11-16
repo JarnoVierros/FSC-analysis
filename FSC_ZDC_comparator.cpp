@@ -24,15 +24,17 @@ int main() {
 
     gStyle->SetOptStat(0);
 
-    string fig_directory = "figures/FSC_ZDC_correlations";
+    string fig_directory = "figures/FSC_ZDC_correlations/cut";
 
     const bool rm_zeroes = true; //remove zeroes
 
-    const bool select_for_rho = true;
+    const bool select_for_rho = false;
 
     if (select_for_rho) {
         fig_directory += "/rho_sample";
     }
+
+
 
     const string ZDC_detector_names[50] = {
         "ZDCm EM 1",
@@ -102,11 +104,18 @@ int main() {
         Tracker_file = TFile::Open("data/Tracker_data_1_399.root");
         HF_file = TFile::Open("data/HF_data_0_cut.root");
     } else {
+        FSC_file = TFile::Open("data/FSC_ZDC_data_1_399_cut.root");
+        ZDC_file = TFile::Open("data/FSC_ZDC_data_1_399_cut.root");
+        Tracker_file = TFile::Open("data/Tracker_data_1_399.root");
+        HF_file = TFile::Open("data/HF_data_0.root");
+    }
+    
+    /*else {
         FSC_file = TFile::Open("data/FSC_data_0.root");
         ZDC_file = TFile::Open("data/ZDC_data_0.root");
         Tracker_file = TFile::Open("data/Tracker_data_0.root");
         HF_file = TFile::Open("data/HF_data_0.root");
-    }
+    }*/
 
     TTreeReader FSC_reader("FSCAnalyzerHC/fscdigi", FSC_file);
     TTreeReader ZDC_reader("zdcanalyzer/zdcdigi", ZDC_file);
