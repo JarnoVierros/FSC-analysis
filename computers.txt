@@ -9,3 +9,6 @@ lxplus989.cern.ch FSC_ZDC
 lxplus942.cern.ch Tracks
 lxplus932.cern.ch Tracks 2
 lxplus921.cern.ch HF
+
+lxplus931.cern.ch CAL1
+

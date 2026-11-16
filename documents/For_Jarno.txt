@@ -1,0 +1,104 @@
+
+// Rho0 selections
+
+// Branch list
+
+    TTree* tree1 = (TTree*)(file->Get("defaultAnalysis/ptree"));
+    TTree* tree2 = (TTree*)(file->Get("zdcanalyzer/zdcdigi"));
+
+    tree1->SetBranchAddress("run_no", &runs);
+    tree1->SetBranchAddress("event_no", &events);
+    tree1->SetBranchAddress("Px", &px);
+    tree1->SetBranchAddress("Py", &py);
+    tree1->SetBranchAddress("Pz", &pz);
+    tree1->SetBranchAddress("Pt", &pt);
+    tree1->SetBranchAddress("Eta", &eta);
+    tree1->SetBranchAddress("Phi", &phi);
+    tree1->SetBranchAddress("Charge", &charge);
+    tree1->SetBranchAddress("dzvtx", &dz);
+    tree1->SetBranchAddress("dxyvtx", &dxy);
+    tree1->SetBranchAddress("dzerror", &dzerror);
+    tree1->SetBranchAddress("dxyerror", &dxyerror);
+    tree1->SetBranchAddress("pterror", &pterror);
+    tree1->SetBranchAddress("DeDx", &dedx);
+    tree1->SetBranchAddress("VtxColl", &VtxColl);
+    tree1->SetBranchAddress("FakeVtx", &FakeVtx);
+    tree1->SetBranchAddress("NumVtx", &NumVtx);
+    tree1->SetBranchAddress("TrkColl", &TrkColl);
+    tree1->SetBranchAddress("HighPurity", &HighPurity);
+    tree1->SetBranchAddress("HFplus", &HFplus);
+    tree1->SetBranchAddress("HFminus", &HFminus);
+    tree2->SetBranchAddress("n",  &nuetron);
+    tree2->SetBranchAddress("sumPlus",  &sump);
+    tree2->SetBranchAddress("sumMinus",  &summ);
+    
+
+
+
+// Event and track selections
+    int entries = tree1->GetEntries();
+    for (int ievt = 0; ievt < entries; ievt++) {
+        tree1->GetEntry(ievt);
+        
+        if(runs < 374804 || runs > 375746) continue; //374804 - 375746 (good run range, where ZDC works fine)
+
+        // Event selections
+        bool passEventSel = (HFplus < 9.2)  && (HFminus < 8.6);
+        
+        std::vector<int> goodTracks;
+        for (int i = 0; i < pt->size(); i++) {
+            bool isGood = (HighPurity->at(i) == 1) &&
+                          ((fabs(pterror->at(i)) / pt->at(i)) < 0.1) &&
+                          ((fabs(dz->at(i)) / dzerror->at(i)) < 3.0) &&
+                          ((fabs(dxy->at(i)) / dxyerror->at(i)) < 3.0) &&
+                          (fabs(eta->at(i)) < 2.4) &&
+                          (pt->at(i) > 0.25);
+
+            if (isGood) {
+                goodTracks.push_back(i); // store index of good track
+            }
+        }
+        if (!passEventSel || goodTracks.size() != 2) continue;
+
+
+
+
+// For rho0:
+	int i1 = goodTracks[0];
+        int i2 = goodTracks[1];
+        //cout << i1 << "         " << i2 << endl;
+        
+        if (charge->at(i1) == charge->at(i2)) continue; // q2 = -q1
+        TLorentzVector TL1, TLorz_PairSum, TL2;
+        TL1.SetPtEtaPhiM(pt->at(i1), eta->at(i1), phi->at(i1), 0.13957);
+        TL2.SetPtEtaPhiM(pt->at(i2), eta->at(i2), phi->at(i2), 0.13957);
+        
+        TLorz_PairSum = TL1 + TL2;
+	// Use TLorz_PairSum to calculate rho0 quantities
+
+
+
+//--- Event Classification based on ZDC Energy ---
+        bool XnA = false, XnC = false;
+        if (sump > 1100) XnA = true;
+        if (summ > 1000) XnC = true;
+            
+            if (XnA && XnC) {
+                count_XnXn++;
+            }
+            if (XnA && !XnC) {
+                count_0nXn_Xn0n++;
+            }
+            if (!XnA && XnC) {
+                count_0nXn_Xn0n++;
+            }
+            if (!XnA && !XnC) {
+                count_0n0n++;
+            }
+            
+                bool is0n0n = (!XnA && !XnC);
+                bool is0nXn_Xn0n = (XnA && !XnC) || (!XnA && XnC);
+                bool isXnXn = (XnA && XnC);
+                bool is0nXn = (XnA && !XnC) ;
+                bool isXn0n = (!XnA && XnC);
+
